@@ -3,8 +3,8 @@ from LimeSoup.ElsevierSoup_XML import ElsevierXMLSoup
 from LimeSoup.lime_soup import Soup, RuleIngredient
 
 __author__ = 'Haoyan Huo'
-__maintainer__ = 'Haoyan Huo'
-__email__ = 'haoyan.huo@lbl.gov'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
 
 # make sure to also update versions of HTML/XML parsers.
 __version__ = '0.3.2'

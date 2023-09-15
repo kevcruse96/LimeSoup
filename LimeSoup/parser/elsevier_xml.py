@@ -6,14 +6,15 @@ from lxml import etree
 from lxml.etree import XMLSyntaxError
 
 __author__ = 'Haoyan Huo'
-__maintainer__ = 'Haoyan Huo'
-__email__ = 'haoyan.huo@lbl.gov'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
 
 
 # Helper functions
 def extract_text_any(_node, handler):
     # Extract node text in rules:
     # A := (B*)
+
     result = []
     for child in _node.children:
         result.append(handler(child))
@@ -629,6 +630,9 @@ def extract_ce_enunciation(node):
     paragraphs = [extract_ce_para(x) for x in children]
     return '\n'.join(paragraphs)
 
+def extract_ce_refid(node):
+    # <!ELEMENT   ce:cross-ref >
+    return
 
 def extract_ce_para(node):
     # <!ELEMENT   ce:para             ( %par.data; )* >
@@ -679,7 +683,6 @@ def extract_ce_section(node):
         if node_named(children[0], 'ce:section-title'):
             title = extract_ce_section_title(children.pop(0))
             section_content['name'] = title
-
         section_content['content'].extend(get_parsec(children))
     else:
         for child in children:
@@ -729,12 +732,15 @@ def extract_ce_abstract(node):
             abstract_sec['content'].extend(extract_ce_simple_para(_children.pop(0)).split('\n'))
 
         if abstract_sec['name']:
-            return abstract_sec,
+            return abstract_sec
         else:
             return abstract_sec['content']
 
     while len(children) and node_named(children[0], 'ce:abstract-sec'):
         section_content['content'].extend(get_abstract_sec(children.pop(0)))
+
+    if not section_content['name']:
+        section_content['name'] = 'Abstract_guess'
 
     return section_content
 

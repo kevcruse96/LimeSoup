@@ -6,8 +6,8 @@ from LimeSoup.lime_soup import Soup, RuleIngredient
 from LimeSoup.parser.paragraphs import extract_paragraphs_recursive, get_tag_text
 
 __author__ = 'Haoyan Huo'
-__maintainer__ = 'Haoyan Huo'
-__email__ = 'haoyan.huo@lbl.gov'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
 __version__ = '0.3.2'
 __all__ = ['ElsevierHTMLSoup']
 

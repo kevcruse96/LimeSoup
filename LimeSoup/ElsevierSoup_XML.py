@@ -1,5 +1,4 @@
 import re
-
 import bs4
 
 from LimeSoup.lime_soup import Soup, RuleIngredient
@@ -9,8 +8,8 @@ from LimeSoup.parser.elsevier_xml import (
     extract_ce_title, remove_consecutive_whitespaces)
 
 __author__ = 'Haoyan Huo, Nicolas Mingione'
-__maintainer__ = 'Haoyan Huo'
-__email__ = 'haoyan.huo@lbl.gov'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
 __version__ = '0.3.2-xml'
 __all__ = ['ElsevierXMLSoup']
 
@@ -20,7 +19,6 @@ class ElsevierParseXML(RuleIngredient):
     def _parse(xml_str):
         xml_str = resolve_elsevier_entities(xml_str)
         return bs4.BeautifulSoup(xml_str, 'lxml-xml')
-
 
 class ElsevierReadMetaData(RuleIngredient):
     @staticmethod
