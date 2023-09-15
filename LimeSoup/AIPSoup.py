@@ -5,9 +5,9 @@ from LimeSoup.parser.paragraphs import extract_paragraphs_recursive
 from LimeSoup.parser.parser_paper import ParserPaper
 
 __author__ = 'Zheren Wang'
-__maintainer__ = ''
-__email__ = 'zherenwang@berkeley.edu'
-__version__ = '0.1.0'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
+__version__ = '0.2.0'
 
 
 class AIPRemoveTrash(RuleIngredient):
@@ -30,6 +30,10 @@ class AIPRemoveTrash(RuleIngredient):
             {'name': 'div', 'class': 'ack'},  # Acknowledgement
             {'name': 'div', 'class': 'NLM_sec-type_appendix'},  # Appendix
             {'name': 'div', 'class': 'article-paragraphs'},  # References
+            {'name': 'xref'},
+            {'name': 'inline-formula'},
+            {'name': 'disp-formula'},
+            {'name': 'label'}  # Do we want to remove this? Or combine it with the following tag? (usually an h1)
         ]
         parser.remove_tags(rules=list_remove)
 
@@ -39,10 +43,14 @@ class AIPRemoveTrash(RuleIngredient):
 class AIPCollectMetadata(RuleIngredient):
     """
     Collect metadata such as Title, Journal Name, DOI.
+
+    2023-08-22 Update: new API for AIP does not include much metadata in fulltext response... removing ingredient for now
+    Will grab this from the /metadata endpoint of their API later
     """
 
     @staticmethod
     def _parse(parser):
+
         trim = lambda tag: re.sub(r'(^[\s\n]+)|([\s\n]+$)', '', tag)
         
         # This dictionary structure should match other parsers,
@@ -83,25 +91,31 @@ class AIPCollectMetadata(RuleIngredient):
 
 class AIPCleanArticleBody(RuleIngredient):
     @staticmethod
-    def _parse(parser_obj):
+    def _parse(parser):
         """
         Find the article body, then remove some tags
         """
-        obj, parser = parser_obj
+        # obj, parser = parser_obj # Only throwing parser around at first with not metadata
 
-        # old style
-        article_body = parser.soup.find(**{'name': 'article', 'class': 'article'})
-        # new style
-        if article_body is None:
-            article_body = parser.soup.find(**{'name': 'div', 'class': 'left-article'})
+        # # old style
+        # article_body = parser.soup.find(**{'name': 'article', 'class': 'article'})
+        # # new style
+        # if article_body is None:
+        #     article_body = parser.soup.find(**{'name': 'div', 'class': 'left-article'})
+        # if article_body is None:
+        #     raise ValueError('Cannot find article body')
+        # parser = ParserPaper(str(article_body), parser_type='html.parser')
+        article_body = parser.soup.find(**{'name': 'fulltext'})
         if article_body is None:
             raise ValueError('Cannot find article body')
         parser = ParserPaper(str(article_body), parser_type='html.parser')
 
         rules = [
-            {'name': 'div', 'class': 'abstractInFull'},
-            {'name': 'div', 'class': 'sectionInfo'},
+        #     {'name': 'div', 'class': 'abstractInFull'},
+        #     {'name': 'div', 'class': 'sectionInfo'},
+            {'name': 'italic'},
             {'name': 'named-content'},
+            {'name': 'ext-link'},
         ]
         parser.strip_tags(rules)
 
@@ -130,30 +144,67 @@ class AIPCleanArticleBody(RuleIngredient):
         rules = {'name': 'div', 'class': 'sectionHeading'}
         parser.rename_tag(rules, 'h4')
 
-        return obj, parser
+        # section titles
+        rules = {'name': 'title'}
+        parser.rename_tag(rules, 'h1')
+
+        # TODO: fix section heading extraction
+
+        secondary_heading_parent_rules = {'name': "sec", 'id': re.compile('s\d[A-Z]$')}
+        secondary_heading_child_rules = {'name': 'h1'}
+        parser.rename_child_based_on_parent(
+            secondary_heading_parent_rules,
+            secondary_heading_child_rules,
+            'h2'
+        )
+
+        tertiary_heading_parent_rules = {'name': "sec", 'id': re.compile('s\d[A-Z]\d$')}
+        tertiary_heading_child_rules= {'name': 'h2'}
+        parser.rename_child_based_on_parent(
+            tertiary_heading_parent_rules,
+            tertiary_heading_child_rules,
+            'h3'
+        )
+
+        # Quartenary headings?
+
+        return parser
 
 
 class AIPCollect(RuleIngredient):
     @staticmethod
-    def _parse(parser_obj):
-        obj, parser = parser_obj
+    def _parse(parser):
+        # obj, parser = parser_obj # Only throwing parser around at first with not metadata
 
         # Parse abstract
-        abstract_body = parser.soup.find(**{'name': 'div', 'class': 'hlFld-Abstract'})
-        abstract = extract_paragraphs_recursive(abstract_body)
+        # abstract_body = parser.soup.find(**{'name': 'div', 'class': 'hlFld-Abstract'})
+        abstract_body = parser.soup.find(**{'name': 'abstract'})
+        if abstract_body:
+            abstract = extract_paragraphs_recursive(abstract_body)
 
-        for each in abstract:
-            each['type'] = 'abstract'
+            # for each in abstract:
+            #     each['type'] = 'abstract' # We don't seem to get section titles anymore, so need to hardcode the abstract data structure
+            abstract_data= {
+                'type': 'abstract',
+                'name': 'Abstract',
+                'content': []
+            }
+            for each in abstract:
+                abstract_data['content'].append(each)
+            abstract_data = [abstract_data]
+        else:
+            abstract_data = []
         
         # Full text
-        full_text_body = parser.soup.find(**{'name': 'div', 'class': 'hlFld-Fulltext'})
+        # full_text_body = parser.soup.find(**{'name': 'div', 'class': 'hlFld-Fulltext'})
+        full_text_body = parser.soup.find(**{'name': 'body'})
         if full_text_body is not None:
             full_text = extract_paragraphs_recursive(full_text_body)
         else:
             full_text = []
 
         # remove indexes
-        data = abstract + list(full_text)
+        data = abstract_data + list(full_text) # as of 2023-08 abstract needs to be downloaded separately
         for i, sec in enumerate(data):
             # for sections that have no title
             if isinstance(sec, str):
@@ -176,13 +227,13 @@ class AIPCollect(RuleIngredient):
 
         remove_indexes(data)
 
-        obj.update({'Sections': data})
+        obj = {'Sections': data}
 
         return obj
 
 
 AIPSoup = Soup(parser_version=__version__)
 AIPSoup.add_ingredient(AIPRemoveTrash())
-AIPSoup.add_ingredient(AIPCollectMetadata())
+# AIPSoup.add_ingredient(AIPCollectMetadata())
 AIPSoup.add_ingredient(AIPCleanArticleBody())
 AIPSoup.add_ingredient(AIPCollect())

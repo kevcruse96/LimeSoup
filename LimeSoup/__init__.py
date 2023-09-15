@@ -1,4 +1,5 @@
 from LimeSoup.ACSSoup import ACSSoup
+from LimeSoup.AIPSoup import AIPSoup
 from LimeSoup.APSSoup import APSSoup
 from LimeSoup.ECSSoup import ECSSoup
 from LimeSoup.ElsevierSoup import ElsevierSoup

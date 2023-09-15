@@ -200,6 +200,13 @@ class ParserPaper(object):
         for tag in tags:
             tag.name = new_name
 
+    def rename_child_based_on_parent(self, parent_rule, child_rule, new_child_name):
+        parent_tags = self.soup.find_all(**parent_rule)
+        for p_tag in parent_tags:
+            child_tags = p_tag.find_all(**child_rule)
+            for c_tag in child_tags:
+                c_tag.name = new_child_name
+
     def strip_tags(self, rules):
         """
         Replace some tag with the children tag.
