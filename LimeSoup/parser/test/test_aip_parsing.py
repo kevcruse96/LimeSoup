@@ -12,7 +12,11 @@ from statistics import mean, median
 
 db = SynDevAdmin.db_access()
 db.connect()
-paper_col = db.collection("AIPPapers")
+
+old_db = FullTextAdmin.db_access()
+old_db.connect()
+
+paper_col = db.collection("AIPPapers_Test")
 paragraphs_col = db.collection("AIPParagraphs_Test")
 
 def update_papers_parsed(papers_to_update):

@@ -114,7 +114,6 @@ class AIPCleanArticleBody(RuleIngredient):
             raise ValueError('Cannot find article body')
         parser = ParserPaper(str(article_body), parser_type='html.parser')
 
-        # TODO: Should we keep lists as separate paragraphs (current) or combine?
         rules = [
         #     {'name': 'div', 'class': 'abstractInFull'},
         #     {'name': 'div', 'class': 'sectionInfo'},
@@ -124,7 +123,6 @@ class AIPCleanArticleBody(RuleIngredient):
             {'name': 'ext-link'},
             {'name': 'xref'},
             {'name': 'bold'},
-            {'name': 'sc'},
             # Below added 2023-12-15, test with 10.1063/1.3075216
             {'name': 'etal'},
             {'name': 'mixed-citation'},
@@ -144,7 +142,7 @@ class AIPCleanArticleBody(RuleIngredient):
             {'name': 'mml:msup'},
             {'name': 'mml:mo'},
             {'name': 'mml:mn'},
-            {'name': 'disp-formula'},
+            #{'name': 'disp-formula'},
             # added below 2023-12-21, test with 10.1063/1.4861795
             {'name': 'alternatives'},
             {'name': 'tex-math'}
@@ -160,7 +158,8 @@ class AIPCleanArticleBody(RuleIngredient):
         # deal with formula
         rules = [
             {'name': 'span', 'class': 'equationTd'},
-            {'name': 'table', 'class': 'formula-display'}
+            {'name': 'table', 'class': 'formula-display'},
+            {'name': 'disp-formula'}
         ]
         parser.flatten_tags(rules)
 
