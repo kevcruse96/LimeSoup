@@ -4,6 +4,8 @@ from LimeSoup.lime_soup import Soup, RuleIngredient
 from LimeSoup.parser.paragraphs import extract_paragraphs_recursive
 from LimeSoup.parser.parser_paper import ParserPaper
 
+from pprint import pprint
+
 __author__ = 'Zheren Wang'
 __maintainer__ = 'Kevin Cruse'
 __email__ = 'kevcruse96@gmail.com'
@@ -30,10 +32,12 @@ class AIPRemoveTrash(RuleIngredient):
             {'name': 'div', 'class': 'ack'},  # Acknowledgement
             {'name': 'div', 'class': 'NLM_sec-type_appendix'},  # Appendix
             {'name': 'div', 'class': 'article-paragraphs'},  # References
-            {'name': 'xref'},
-            {'name': 'inline-formula'},
-            {'name': 'disp-formula'},
-            {'name': 'label'}  # Do we want to remove this? Or combine it with the following tag? (usually an h1)
+            {'name': 'xref', 'ref-type': 'bibr'}, # removes in-line citation numbers
+            # {'name': 'inline-formula'}, # moving to strip_tags as of 2023-12-15
+            # {'name': 'disp-formula'}, # moving to strip_tags as of 2023-12-21
+            {'name': 'label'},  # this tag is used for things like list item markers, so we lose that (should be okay)
+            {'name': 'caption'}, # figure captions typically
+            {'name': 'table'}
         ]
         parser.remove_tags(rules=list_remove)
 
@@ -110,12 +114,40 @@ class AIPCleanArticleBody(RuleIngredient):
             raise ValueError('Cannot find article body')
         parser = ParserPaper(str(article_body), parser_type='html.parser')
 
+        # TODO: Should we keep lists as separate paragraphs (current) or combine?
         rules = [
         #     {'name': 'div', 'class': 'abstractInFull'},
         #     {'name': 'div', 'class': 'sectionInfo'},
+            {'name': 'list'}, # TODO: decide on this... was implemented previously
             {'name': 'italic'},
             {'name': 'named-content'},
             {'name': 'ext-link'},
+            {'name': 'xref'},
+            {'name': 'bold'},
+            {'name': 'sc'},
+            # Below added 2023-12-15, test with 10.1063/1.3075216
+            {'name': 'etal'},
+            {'name': 'mixed-citation'},
+            {'name': 'source'},
+            {'name': 'volume'},
+            {'name': 'fpage'},
+            {'name': 'year'},
+            {'name': 'underline'}, # check 10.1063/1.4861795
+            {'name': 'inline-supplementary-material'}, # check 10.1063/1.4979560
+            # added below 2023-12-15, test with 10.1063/1.3085997
+            {'name': 'inline-formula'},
+            {'name': 'mml:math'},
+            {'name': 'mml:mrow'},
+            {'name': 'mml:mi'},
+            {'name': 'mml:mtext'},
+            {'name': 'mml:msub'},
+            {'name': 'mml:msup'},
+            {'name': 'mml:mo'},
+            {'name': 'mml:mn'},
+            {'name': 'disp-formula'},
+            # added below 2023-12-21, test with 10.1063/1.4861795
+            {'name': 'alternatives'},
+            {'name': 'tex-math'}
         ]
         parser.strip_tags(rules)
 
@@ -147,8 +179,6 @@ class AIPCleanArticleBody(RuleIngredient):
         # section titles
         rules = {'name': 'title'}
         parser.rename_tag(rules, 'h1')
-
-        # TODO: fix section heading extraction
 
         secondary_heading_parent_rules = {'name': "sec", 'id': re.compile('s\d[A-Z]$')}
         secondary_heading_child_rules = {'name': 'h1'}

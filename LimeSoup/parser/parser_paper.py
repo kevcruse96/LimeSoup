@@ -7,6 +7,8 @@ import re
 
 import bs4
 
+from pprint import pprint
+
 import LimeSoup.parser.tools as tl
 
 
@@ -126,7 +128,29 @@ class ParserPaper(object):
                 s.extract()
                 return
 
-    def create_tag_from_selection(self, rule, name_new_tag, name_section='Abstract'):
+    def create_abstract_section(self):
+        inside_tags = self.soup.find_all(**{'name': 'section_h1'})
+        for tag in inside_tags:
+            for t in tag: # the entire article will be included in this tag
+                abstract_content = [item for item in itertools.takewhile(
+                        lambda t: t == '\n' or t.get('id') not in ['pnlArticleContent'],
+                        t.next_siblings)]
+
+                updated_abstract_section = []
+                for c in abstract_content:
+                    if c != '\n':
+                        if c.name == 'h1':
+                            c.name = 'h2'
+                        updated_abstract_section.append(c)
+
+
+                section = self.soup.new_tag('section_h2')
+                t.wrap(section)
+                for c in updated_abstract_section:
+                    section.append(c)
+
+
+    def create_tag_from_selection(self, rule, name_new_tag, name_section=None):
         """
         Create a tag inside a bs4 soup object from a selection using a rule.
         :param rule: a dict() of rules of bs4 find_all()
@@ -136,14 +160,18 @@ class ParserPaper(object):
         """
         inside_tags = self.soup.find_all(**rule)
         section = self.soup.new_tag('section_{}'.format(name_new_tag))
-        heading = self.soup.new_tag('h2')
-        heading.append(name_section)
-        section.append(heading)
+        if name_section:
+            heading = self.soup.new_tag('h2')
+            heading.append(name_section)
+            section.append(heading)
+        else:
+            for s in section.find_all(**{'name': 'h1', 'class': "h--heading3 article-abstract__heading"}):
+                s.name = 'h2'
         for tag in inside_tags:
             tag.wrap(section)
             section.append(tag)
 
-    def create_tag_to_paragraphs_inside_tag(self, rule, name_new_tag, name_section='Abstract'):
+    def create_tag_to_paragraphs_inside_tag(self, rule, name_new_tag, name_section=None):
         inside_tags_inter = self.soup.find_all(**rule)
         if len(inside_tags_inter) == 0:
             # self.save_soup_to_file('selction_found_nothing.html')
@@ -158,9 +186,10 @@ class ParserPaper(object):
             # input('Section not created, number of paragraphs equal zero.')
             return 'Section not created, number of paragraphs equal zero.'
         section = self.soup.new_tag('section_{}'.format(name_new_tag))
-        heading = self.soup.new_tag('h2')
-        heading.append(name_section)
-        section.append(heading)
+        if name_section:
+            heading = self.soup.new_tag('h2')
+            heading.append(name_section)
+            section.append(heading)
         for tag in inside_tags:
             tag_next_sibling = tag
             while True:
@@ -194,6 +223,13 @@ class ParserPaper(object):
                 each_tag.wrap(section)
                 for tag in inside_tags:
                     section.append(tag)
+
+    def add_child_class_based_on_parent(self, parent_rule, child_rule, child_class):
+        parent_tags = self.soup.find_all(**parent_rule)
+        for p_tag in parent_tags:
+            child_tags = p_tag.find_all(**child_rule)
+            for c_tag in child_tags:
+                c_tag['class'] = child_class
 
     def rename_tag(self, rule, new_name='section_h4'):
         tags = self.soup.find_all(**rule)
