@@ -13,9 +13,6 @@ from statistics import mean, median
 db = SynDevAdmin.db_access()
 db.connect()
 
-old_db = FullTextAdmin.db_access()
-old_db.connect()
-
 paper_col = db.collection("AIPPapers_Test")
 paragraphs_col = db.collection("AIPParagraphs_Test")
 
@@ -80,7 +77,7 @@ papers_to_update = []
 error_ct = []
 none_ct = []
 total = 6000
-for i, paper in enumerate(paper_col.find({'DOI': '10.1063/1.3075216'})):
+for i, paper in enumerate(paper_col.find({})):
 #     '$or':
 #     [
 #         {'parser_successful': {'$exists': False}},
@@ -90,9 +87,6 @@ for i, paper in enumerate(paper_col.find({'DOI': '10.1063/1.3075216'})):
     if 'Combined_Paper_Content' in paper.keys() and paper['Combined_Paper_Content']:
         try:
             parsed_paper = AIPSoup.parse(paper['Combined_Paper_Content'])
-
-            pprint(parsed_paper)
-            stop
 
             unwound_sections, ancestors, total_paras = unwind_sections(parsed_paper['Sections'], collected_content=[],
                                                                        ancestors=['_root'])
@@ -110,38 +104,35 @@ for i, paper in enumerate(paper_col.find({'DOI': '10.1063/1.3075216'})):
                     }
                 )
 
-            pprint(paragraphs_to_insert)
-            stop
             error = None
             parsed = True
         except Exception as e:
-            stop
             error = str(e)
             error_ct.append({paper['DOI']: error})
             parsed = False
-        # papers_to_update.append(
-        #     {
-        #         '_id': paper['_id'],
-        #         'parser_error': str(error),
-        #         'parser_version': 'Elsevier+0.3.3',
-        #         'parser_successful': parsed,
-        #     }
-        # )
+        papers_to_update.append(
+            {
+                '_id': paper['_id'],
+                'parser_error': str(error),
+                'parser_version': 'AIP+0.3.3',
+                'parser_successful': parsed,
+            }
+        )
     else:
         none_ct.append(paper['DOI'])
 
-    # if (i+1) % 1 == 0:
-    #     if paragraphs_to_insert:
-    #         paragraphs_col.insert_many(paragraphs_to_insert)
-    #     update_papers_parsed(papers_to_update)
-    #     paragraphs_to_insert = []
-    #     papers_to_update = []
-    #
-    #     with open('./logs/errors.json', 'w') as  fp:
-    #         json.dump(error_ct, fp)
-    #
-    #     with open('./logs/none_dois.json', 'w') as fp:
-    #         json.dump(none_ct, fp)
+    if (i+1) % 1 == 0:
+        if paragraphs_to_insert:
+            paragraphs_col.insert_many(paragraphs_to_insert)
+        update_papers_parsed(papers_to_update)
+        paragraphs_to_insert = []
+        papers_to_update = []
+
+        with open('./logs/errors.json', 'w') as  fp:
+            json.dump(error_ct, fp)
+
+        with open('./logs/none_dois.json', 'w') as fp:
+            json.dump(none_ct, fp)
 
     print(f'{i+1}/{total} ({len(error_ct)} errors, {len(none_ct)} empty content)', end='\r')
 

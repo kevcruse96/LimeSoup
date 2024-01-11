@@ -37,7 +37,9 @@ class AIPRemoveTrash(RuleIngredient):
             # {'name': 'disp-formula'}, # moving to strip_tags as of 2023-12-21
             {'name': 'label'},  # this tag is used for things like list item markers, so we lose that (should be okay)
             {'name': 'caption'}, # figure captions typically
-            {'name': 'table'}
+            {'name': 'table'},
+            # Added 1/10/24... seems to be related to LaTeX markdown, but would be good to check on
+            {'name': 'tex-math'}, #
         ]
         parser.remove_tags(rules=list_remove)
 
@@ -118,7 +120,7 @@ class AIPCleanArticleBody(RuleIngredient):
         #     {'name': 'div', 'class': 'abstractInFull'},
         #     {'name': 'div', 'class': 'sectionInfo'},
             {'name': 'list'}, # TODO: decide on this... was implemented previously
-            {'name': 'italic'},
+            #{'name': 'italic'},
             {'name': 'named-content'},
             {'name': 'ext-link'},
             {'name': 'xref'},
@@ -140,12 +142,11 @@ class AIPCleanArticleBody(RuleIngredient):
             {'name': 'mml:mtext'},
             {'name': 'mml:msub'},
             {'name': 'mml:msup'},
-            {'name': 'mml:mo'},
-            {'name': 'mml:mn'},
-            #{'name': 'disp-formula'},
+            #{'name': 'mml:mo'},
+            {'name': 'mml:msqrt'},
             # added below 2023-12-21, test with 10.1063/1.4861795
+            {'name': 'mml:mover'},
             {'name': 'alternatives'},
-            {'name': 'tex-math'}
         ]
         parser.strip_tags(rules)
 

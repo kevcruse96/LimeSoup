@@ -17,7 +17,8 @@ INLINE_TAGS = {
     'bdi', 'data', 'del', 'ins', 'mark', 'meter', 'progress', 's', 'u', 'wbr',
 
     # Added Jan 8, 2024
-    'sc', 'inline-formula', 'mml:mrow', 'mml:mi', 'mml:mtext', 'mml:msub', 'mml:msup', 'mml:mo', 'mml:mn',
+    'italic', 'sc', 'inline-formula', 'mml:mrow', 'mml:mi', 'mml:mtext', 'mml:msub', 'mml:msup', 'mml:mo', 'mml:mn',
+    'mml:mover'
 }
 
 LINEBREAK_ELEMENTS = {'hr', 'br'}
