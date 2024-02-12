@@ -1,4 +1,5 @@
 import re
+import regex
 
 from LimeSoup.lime_soup import Soup, RuleIngredient
 from LimeSoup.parser.paragraphs import extract_paragraphs_recursive
@@ -35,9 +36,12 @@ class AIPRemoveTrash(RuleIngredient):
             {'name': 'xref', 'ref-type': 'bibr'}, # removes in-line citation numbers
             # {'name': 'inline-formula'}, # moving to strip_tags as of 2023-12-15
             # {'name': 'disp-formula'}, # moving to strip_tags as of 2023-12-21
-            {'name': 'label'},  # this tag is used for things like list item markers, so we lose that (should be okay)
+            # {'name': 'label'},  # this tag is used for things like list item markers, so we lose that (should be okay)... actually decided to keep as of 2023-01-18
             {'name': 'caption'}, # figure captions typically
             {'name': 'table'},
+            {'name': 'table-wrap'},
+            {'name': 'fig'},
+            {'name': 'ack'},
             # Added 1/10/24... seems to be related to LaTeX markdown, but would be good to check on
             {'name': 'tex-math'}, #
         ]
@@ -116,10 +120,33 @@ class AIPCleanArticleBody(RuleIngredient):
             raise ValueError('Cannot find article body')
         parser = ParserPaper(str(article_body), parser_type='html.parser')
 
+        # 2023-01-18 ===> list items are divided by <p></p> tags, so the following is a bit of a hacky
+        # way to change those tags and join everything in the same previous paragraph
+        list_para_parent_rule = {'name': "list"}
+        list_para_child_rule = {'name': 'p'}
+        parser.rename_child_based_on_parent(
+            list_para_parent_rule,
+            list_para_child_rule,
+            'named-content'
+        )
+
+        # 2023-01-18 ===> created new function to remove the <label></label> tags that denote section headings,
+        # that way we can keep list item labels but remove this junk
+        section_label_tag_rule = {'name': 'label'}
+        section_label_next_sibling_rule = {'name': 'title'}
+        parser.remove_tag_based_on_next_sibling(
+            section_label_tag_rule,
+            section_label_next_sibling_rule,
+        )
+
+
+
         rules = [
         #     {'name': 'div', 'class': 'abstractInFull'},
         #     {'name': 'div', 'class': 'sectionInfo'},
             {'name': 'list'}, # TODO: decide on this... was implemented previously
+            {'name': 'list-item'},
+            {'name': 'label'},
             #{'name': 'italic'},
             {'name': 'named-content'},
             {'name': 'ext-link'},
@@ -131,22 +158,40 @@ class AIPCleanArticleBody(RuleIngredient):
             {'name': 'source'},
             {'name': 'volume'},
             {'name': 'fpage'},
+            {'name': 'lpage'},
             {'name': 'year'},
             {'name': 'underline'}, # check 10.1063/1.4861795
             {'name': 'inline-supplementary-material'}, # check 10.1063/1.4979560
             # added below 2023-12-15, test with 10.1063/1.3085997
             {'name': 'inline-formula'},
-            {'name': 'mml:math'},
-            {'name': 'mml:mrow'},
-            {'name': 'mml:mi'},
-            {'name': 'mml:mtext'},
-            {'name': 'mml:msub'},
-            {'name': 'mml:msup'},
-            #{'name': 'mml:mo'},
-            {'name': 'mml:msqrt'},
-            # added below 2023-12-21, test with 10.1063/1.4861795
-            {'name': 'mml:mover'},
-            {'name': 'alternatives'},
+            {'name': regex.compile("mml:.*(?<!mstyle|mo|mi|msub|mrow|math)$")},
+            {'name': 'inline-graphic'},
+            {'name': 'monospace'},
+            {'name': 'publisher-name'},
+            {'name': 'publisher-loc'},
+            {'name': 'year'},
+            {'name': 'pub-id'},
+            {'name': 'roman'},
+            # Using above regex instead... should remove below)
+            # {'name': 'mml:math'},
+            # {'name': 'mml:mrow'},
+            # # {'name': 'mml:mi'},
+            # {'name': 'mml:mtext'},
+            # {'name': 'mml:msub'},
+            # {'name': 'mml:msup'},
+            # {'name': 'mml:msubsup'},
+            # #{'name': 'mml:mo'},
+            # {'name': 'mml:msqrt'},
+            # # added below 2023-12-21, test with 10.1063/1.4861795
+            # {'name': 'mml:mover'},
+            # {'name': 'alternatives'},
+            # # added below 2024-1-11, test with 10.1063/1.4985139
+            # # {'name': 'mml:mstyle'},
+            # {'name': 'mml:mfenced'},
+            # {'name': 'mml:mfrac'},
+            # {'name': 'mml:mspace'},
+            # {'name': 'mml:mpadded'},
+            # {'name': 'mml:mphantom'}
         ]
         parser.strip_tags(rules)
 
@@ -160,7 +205,8 @@ class AIPCleanArticleBody(RuleIngredient):
         rules = [
             {'name': 'span', 'class': 'equationTd'},
             {'name': 'table', 'class': 'formula-display'},
-            {'name': 'disp-formula'}
+            {'name': 'disp-formula'},
+            {'name': 'disp-formula-group'}
         ]
         parser.flatten_tags(rules)
 
@@ -180,19 +226,19 @@ class AIPCleanArticleBody(RuleIngredient):
         rules = {'name': 'title'}
         parser.rename_tag(rules, 'h1')
 
-        secondary_heading_parent_rules = {'name': "sec", 'id': re.compile('s\d[A-Z]$')}
-        secondary_heading_child_rules = {'name': 'h1'}
+        secondary_heading_parent_rule = {'name': "sec", 'id': re.compile('s\d[A-Z]$')}
+        secondary_heading_child_rule = {'name': 'h1'}
         parser.rename_child_based_on_parent(
-            secondary_heading_parent_rules,
-            secondary_heading_child_rules,
+            secondary_heading_parent_rule,
+            secondary_heading_child_rule,
             'h2'
         )
 
-        tertiary_heading_parent_rules = {'name': "sec", 'id': re.compile('s\d[A-Z]\d$')}
-        tertiary_heading_child_rules= {'name': 'h2'}
+        tertiary_heading_parent_rule = {'name': "sec", 'id': re.compile('s\d[A-Z]\d$')}
+        tertiary_heading_child_rule= {'name': 'h2'}
         parser.rename_child_based_on_parent(
-            tertiary_heading_parent_rules,
-            tertiary_heading_child_rules,
+            tertiary_heading_parent_rule,
+            tertiary_heading_child_rule,
             'h3'
         )
 
@@ -249,11 +295,14 @@ class AIPCollect(RuleIngredient):
             remove indexes in section header
             """
             # include number, greek number and capital char
-            indexes_pattern = re.compile(r'^([A-z0-9]+)(\.|\s)(\s)+')
+            # indexes_pattern = re.compile(r'^([A-z0-9]+)(\.|\s)(\s)+')
+            # updated 2024-02-12 (accepts full words as "index" but removes numbers, single letters, and roman numerals)
+            indexes_pattern = re.compile(r'^([A-z]{1}|[IVXMCDL]+|[0-9]+)(\.|\s)(\s)+')
             for sec in sections:
                 if isinstance(sec, dict):
                     sec['name'] = re.sub(indexes_pattern, '', sec['name'])
                     remove_indexes(sec['content'])
+                pprint(sec)
 
         remove_indexes(data)
 
