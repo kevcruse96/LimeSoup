@@ -5,8 +5,8 @@ from LimeSoup.parser.paragraphs import extract_paragraphs_recursive
 from LimeSoup.parser.parser_paper import ParserPaper
 
 __author__ = 'Tiago Botari, Haoyan Huo'
-__maintainer__ = 'Haoyan Huo'
-__email__ = 'haoyan.huo@lbl.gov'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
 __version__ = '0.3.0'
 
 

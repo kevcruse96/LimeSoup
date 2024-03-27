@@ -1,11 +1,13 @@
 from LimeSoup.lime_soup import Soup, RuleIngredient
 from LimeSoup.parser.parser_paper_IOP import ParserPaper1, ParserPaper2
 
+import re
+
 
 __author__ = 'Zheren Wang'
-__maintainer__ = ''
-__email__ = ''
-__version__ = '0.1.1'
+__maintainer__ = 'Kevin Cruse'
+__email__ = 'kevcruse96@gmail.com'
+__version__ = '0.1.2'
 
 class IOPSoup(Soup):
 
@@ -24,13 +26,15 @@ class IOPRemoveTrash1(RuleIngredient):
     @staticmethod
     def _parse(xml_str):
         # Tags to be removed from the xml paper
+        xml_str = re.sub(r'(?:(\[)?<xref ref-type="bibr".*?(\]|\)))', '', xml_str)
+        parser = ParserPaper1(xml_str, parser_type='lxml', debugging=False)
         list_remove = [
             {'name': 'ref-list'},
             {'name': 'xref', 'ref-type': 'bibr'},
             {'name': 'table-wrap'},
             {'name': 'fig'},
+            {'name': 'label'}
         ]
-        parser = ParserPaper1(xml_str, parser_type='lxml', debugging=False)
         parser.remove_tags(rules=list_remove)
         return parser.raw_xml
 
@@ -105,14 +109,30 @@ class IOPRemoveTrash2(RuleIngredient):
     @staticmethod
     def _parse(xml_str):
         # Tags to be removed from the xml paper
+
+        # Before creating BeautifulSoup object, remove in-line citation groupings
+        # removes chunks like [10], [1, 3], [4-6], and replaces with emtpy string
+        # if there is a space before, that will be retained (need this in case enclosing is surrounded by () + other
+        # discussion... somewhat hacky workaround but seems better than leaving in the "[, ]", "[-]", etc. substrings.
+        # If there are any remaining, then just remove using parser.remove_tags() method
+        xml_str = re.sub(r'(?:(\[)?<xref ref-type="bibr".*?(\]|\)))', '', xml_str)
+
+        parser = ParserPaper2(xml_str, parser_type='lxml', debugging=False)
+
         list_remove = [
             {'name': 'ref-list'},
-            {'name': 'xref', 'ref-type': 'bibr'},
             {'name': 'table-wrap'},
             {'name': 'fig'},
+            {'name': 'xref', 'ref-type': 'bibr'},
+            {'name': 'label'}
         ]
-        parser = ParserPaper2(xml_str, parser_type='lxml', debugging=False)
+
         parser.remove_tags(rules=list_remove)
+
+        if parser.soup.find(**{'name': 'xref', 'ref-type': 'bibr'}):
+            print(parser.soup.find(**{'name': 'xref', 'ref-type': "bibr"}))
+            print('Did not remove xref bibr correctly')
+            stop
         return parser.raw_xml
 
 class IOPCreateTags2(RuleIngredient):
