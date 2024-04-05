@@ -33,7 +33,12 @@ class RSCRemoveTrash(RuleIngredient):
             {'name': 'a', 'href': re.compile(r'#cit\d+')},  # Remove citations
             {'name': 'script'},
             {'name': 'figcaption'},
-            {'name': 'figure'}
+            {'name': 'figure'},
+            # below added 2023-01-17
+            {'name': 'div', 'class': 'footnotes'},
+            {'name': 'div', 'class': 'article-copyright'},
+            {'name': 'div', 'class': 'biog'},
+            {'name': 'div', 'class': 'pnl pnl--border pnl--drop'}
         ])
         parser.remove_first_tag(rules=[
             {'name': 'p', 'class': 'bold italic', 'string': re.compile('First published on')}
@@ -133,6 +138,7 @@ class RSCCollect(RuleIngredient):
         exclude_sections = [
             re.compile(r'.*?acknowledge?ment.*?', re.IGNORECASE),
             re.compile(r'.*?reference.*?', re.IGNORECASE),
+            re.compile(r'.*?footnote.*?', re.IGNORECASE)
         ]
         for item in parser.soup.find_all('section_h1'):
             for tag in item.find_all(**{'name': re.compile('^section_h[1-6]'), 'recursive': False}): # recursive: False seems wrong to include

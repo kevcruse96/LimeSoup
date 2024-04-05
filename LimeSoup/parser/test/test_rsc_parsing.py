@@ -78,19 +78,22 @@ def unwind_sections(sections, collected_content=[], ancestors=['_root'], i=0):
     return collected_content, ancestors, i
 
 test_parsing = []
-for i, paper in enumerate(paper_col.find({'$and': [
-    {'Paper_Content_HTML': {'$exists': True}},
-    {'$or':
-        [
-            {'parser_successful': {'$exists': False}},
-            {'parser_successful': False}
-        ]
-    }]
-})):
+for i, paper in enumerate(paper_col.find({'DOI': '10.1039/B311203A'})):
+#     '$and': [
+#     {'Paper_Content_HTML': {'$exists': True}},
+#     {'$or':
+#         [
+#             {'parser_successful': {'$exists': False}},
+#             {'parser_successful': False}
+#         ]
+#     }]
+# })):
     if paper['Paper_Content_HTML'] is not None:
         try:
             parsed_paper = RSCSoup.parse(paper['Paper_Content_HTML'])
             # TODO: abstract is currently extracted as type: section_h1... is this an issue?
+            pprint(parsed_paper)
+            stop
             parsed_paper['DOI'] = paper['DOI']
             parsed_paper['Journal'] = paper['Journal']
             unwound_sections, ancestors, total_paras = unwind_sections(parsed_paper['Sections'], collected_content=[],
@@ -110,6 +113,7 @@ for i, paper in enumerate(paper_col.find({'$and': [
             error = None
             parsed = True
         except Exception as e:
+            stop
             error = str(e)
             error_ct.append({paper['DOI']: error})
             parsed = False
@@ -125,9 +129,9 @@ for i, paper in enumerate(paper_col.find({'$and': [
         none_ct.append(paper['DOI'])
 
     if (i + 1) % 1 == 0:
-        if paragraphs_to_insert:
-            paragraphs_col.insert_many(paragraphs_to_insert)
-        update_papers_parsed(papers_to_update)
+        # if paragraphs_to_insert:
+        #     paragraphs_col.insert_many(paragraphs_to_insert)
+        # update_papers_parsed(papers_to_update)
         paragraphs_to_insert = []
         papers_to_update = []
 

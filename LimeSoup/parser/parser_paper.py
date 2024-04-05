@@ -128,6 +128,19 @@ class ParserPaper(object):
                 s.extract()
                 return
 
+    def remove_children_based_on_parent(self, parent_rule, child_rule):
+        parent_tags = self.soup.find_all(**parent_rule)
+        for p_tag in parent_tags:
+            child_tags = p_tag.find_all(**child_rule)
+            for c_tag in child_tags:
+                c_tag.extract()
+
+    def remove_tag_based_on_next_sibling(self, tag_rule, next_sibling_rule):
+        next_sibling_tags= self.soup.find_all(**next_sibling_rule)
+        for fs_tag in next_sibling_tags:
+            if fs_tag.findPrevious().name == tag_rule['name']:
+                fs_tag.findPrevious().extract()
+
     def create_abstract_section(self):
         inside_tags = self.soup.find_all(**{'name': 'section_h1'})
         for tag in inside_tags:

@@ -77,7 +77,7 @@ papers_to_update = []
 error_ct = []
 none_ct = []
 total = 6000
-for i, paper in enumerate(paper_col.find({})):
+for i, paper in enumerate(paper_col.find({'DOI': '10.1063/1.4929725'})):
 #     '$or':
 #     [
 #         {'parser_successful': {'$exists': False}},
@@ -87,7 +87,8 @@ for i, paper in enumerate(paper_col.find({})):
     if 'Combined_Paper_Content' in paper.keys() and paper['Combined_Paper_Content']:
         try:
             parsed_paper = AIPSoup.parse(paper['Combined_Paper_Content'])
-
+            pprint(parsed_paper)
+            stop
             unwound_sections, ancestors, total_paras = unwind_sections(parsed_paper['Sections'], collected_content=[],
                                                                        ancestors=['_root'])
 
@@ -107,6 +108,7 @@ for i, paper in enumerate(paper_col.find({})):
             error = None
             parsed = True
         except Exception as e:
+            stop
             error = str(e)
             error_ct.append({paper['DOI']: error})
             parsed = False
@@ -122,9 +124,9 @@ for i, paper in enumerate(paper_col.find({})):
         none_ct.append(paper['DOI'])
 
     if (i+1) % 1 == 0:
-        if paragraphs_to_insert:
-            paragraphs_col.insert_many(paragraphs_to_insert)
-        update_papers_parsed(papers_to_update)
+        # if paragraphs_to_insert:
+        #     paragraphs_col.insert_many(paragraphs_to_insert)
+        # update_papers_parsed(papers_to_update)
         paragraphs_to_insert = []
         papers_to_update = []
 
