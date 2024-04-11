@@ -1,5 +1,7 @@
 from LimeSoup.lime_soup import Soup, RuleIngredient
-from LimeSoup.parser.parser_paper_IOP import ParserPaper1, ParserPaper2
+from LimeSoup.parser.parser_paper_IOP import ParserPaper
+
+from pprint import pprint
 
 import re
 
@@ -9,103 +11,8 @@ __maintainer__ = 'Kevin Cruse'
 __email__ = 'kevcruse96@gmail.com'
 __version__ = '0.1.2'
 
-class IOPSoup(Soup):
 
-    def parse(html_str):
-        parsed_paper = IOPSoup1.parse(html_str)
-        if parsed_paper['DOI']:
-            return parsed_paper
-        return IOPSoup2.parse(html_str)
-"""
-The reason why there are two different soup and parsers is that papers from IOP have two different formats, so two parsers are made. Here the way to classify two formats is using different parsers to parse IOP xml, if the xml can be successfully parsed, then we accept the parsed result, otherwise we use another parser.
-
-"""
-
-
-class IOPRemoveTrash1(RuleIngredient):
-    @staticmethod
-    def _parse(xml_str):
-        # Tags to be removed from the xml paper
-        xml_str = re.sub(r'(?:(\[)?<xref ref-type="bibr".*?(\]|\)))', '', xml_str)
-        parser = ParserPaper1(xml_str, parser_type='lxml', debugging=False)
-        list_remove = [
-            {'name': 'ref-list'},
-            {'name': 'xref', 'ref-type': 'bibr'},
-            {'name': 'table-wrap'},
-            {'name': 'fig'},
-            {'name': 'label'}
-        ]
-        parser.remove_tags(rules=list_remove)
-        return parser.raw_xml
-
-class IOPCreateTags1(RuleIngredient):
-
-    @staticmethod
-    def _parse(xml_str):
-        parser = ParserPaper1(xml_str, parser_type='lxml', debugging=False)
-        try:
-            # This create a standard of sections tag name
-            parser.create_tag_sections()
-        except:
-            pass
-        return parser.raw_xml
-
-class IOPReplaceSectionTag1(RuleIngredient):
-
-    @staticmethod
-    def _parse(xml_str):
-        parser = ParserPaper1(xml_str, parser_type='lxml', debugging=False)
-        parser.change_name_tag_sections()
-        return parser.raw_xml
-
-class IOPReformat1(RuleIngredient):
-
-    @staticmethod
-    def _parse(xml_str):
-        new_xml = xml_str.replace('>/','>')
-        parser = ParserPaper1(new_xml, parser_type='lxml',debugging=False)
-        return parser.raw_xml
-
-class IOPCollect1(RuleIngredient):
-
-    @staticmethod
-    def _parse(xml_str):
-        parser = ParserPaper1(xml_str, parser_type='lxml', debugging=False)
-        # Collect information from the paper using ParserPaper
-        try:
-            journal_name = next(x for x in parser.get(rules=[{"name": "jnl-fullname"}]))
-        except StopIteration:
-            journal_name = None
-
-        parser.get_title(rules=[
-            {'name': 'title'}
-        ]
-        )
-        doi = parser.get(rules=[
-            {'name': 'doi'}
-        ])
-        parser.deal_with_sections()
-        data = parser.data_sections
-        parser.create_abstract(rule={'name': 'abstract'})
-
-        obj = {
-            'DOI': "".join(doi),
-            'Keywords': [],
-            'Title': parser.title,
-            'Journal': journal_name,
-            'Sections': data
-        }
-        return obj
-
-
-IOPSoup1 = Soup(parser_version=__version__)
-IOPSoup1.add_ingredient(IOPReformat1())
-IOPSoup1.add_ingredient(IOPRemoveTrash1())
-IOPSoup1.add_ingredient(IOPCreateTags1())
-IOPSoup1.add_ingredient(IOPReplaceSectionTag1())
-IOPSoup1.add_ingredient(IOPCollect1())
-
-class IOPRemoveTrash2(RuleIngredient):
+class IOPRemoveTrash(RuleIngredient):
     @staticmethod
     def _parse(xml_str):
         # Tags to be removed from the xml paper
@@ -117,14 +24,16 @@ class IOPRemoveTrash2(RuleIngredient):
         # If there are any remaining, then just remove using parser.remove_tags() method
         xml_str = re.sub(r'(?:(\[)?<xref ref-type="bibr".*?(\]|\)))', '', xml_str)
 
-        parser = ParserPaper2(xml_str, parser_type='lxml', debugging=False)
+        parser = ParserPaper(xml_str, parser_type='lxml', debugging=False)
 
         list_remove = [
             {'name': 'ref-list'},
             {'name': 'table-wrap'},
             {'name': 'fig'},
             {'name': 'xref', 'ref-type': 'bibr'},
-            {'name': 'label'}
+            {'name': 'label'},
+            {'name': 'disp-formula'},
+            {'name': 'inline-formula'}
         ]
 
         parser.remove_tags(rules=list_remove)
@@ -135,11 +44,11 @@ class IOPRemoveTrash2(RuleIngredient):
             stop
         return parser.raw_xml
 
-class IOPCreateTags2(RuleIngredient):
+class IOPCreateTags(RuleIngredient):
 
     @staticmethod
     def _parse(xml_str):
-        parser = ParserPaper2(xml_str, parser_type='lxml', debugging=False)
+        parser = ParserPaper(xml_str, parser_type='lxml', debugging=False)
         try:
             # This create a standard of sections tag name
             parser.create_tag_sections()
@@ -147,37 +56,43 @@ class IOPCreateTags2(RuleIngredient):
             pass
         return parser.raw_xml
 
-class IOPReplaceSectionTag2(RuleIngredient):
+class IOPReplaceSectionTag(RuleIngredient):
 
     @staticmethod
     def _parse(xml_str):
-        parser = ParserPaper2(xml_str, parser_type='lxml', debugging=False)
+        parser = ParserPaper(xml_str, parser_type='lxml', debugging=False)
         parser.change_name_tag_sections()
         return parser.raw_xml
 
-class IOPReformat2(RuleIngredient):
+class IOPReformat(RuleIngredient):
 
     @staticmethod
     def _parse(xml_str):
         new_xml = xml_str.replace('>/','>')
-        parser = ParserPaper2(new_xml, parser_type='lxml',debugging=False)
+        parser = ParserPaper(new_xml, parser_type='lxml',debugging=False)
         return parser.raw_xml
 
-class IOPCollect2(RuleIngredient):
+class IOPCollect(RuleIngredient):
 
     @staticmethod
     def _parse(xml_str):
-        parser = ParserPaper2(xml_str, parser_type='lxml', debugging=False)
+        parser = ParserPaper(xml_str, parser_type='lxml', debugging=False)
         # Collect information from the paper using ParserPaper
-        try:
-            journal_name = next(x for x in parser.get(rules=[{"name": "journal-title"}]))
-        except StopIteration:
-            journal_name = None
 
-        parser.get_title(rules=[
-            {'name': 'article-title'}
-        ]
-        )
+        # As of 2024-04, we already have journal title from download
+        # try:
+        #     journal_name = next(x for x in parser.get(rules=[{"name": "journal-title"}]))
+        # except StopIteration:
+        #     journal_name = None
+
+        # As of 2024-04, we already have article title from download
+        # parser.get_title(rules=[
+        #     {'name': 'article-title'}
+        # ]
+        # )
+
+        # As of 2024-04, this is the correct way to get DOI...
+        # should against what was parsed from download
         doi = parser.get(rules=[
             {'name': 'article-id',
             'pub-id-type': 'doi'}
@@ -189,19 +104,17 @@ class IOPCollect2(RuleIngredient):
         obj = {
             'DOI': "".join(doi),
             'Keywords': [],
-            'Title': parser.title,
-            'Journal': journal_name,
             'Sections': data
         }
         return obj
 
 
-IOPSoup2 = Soup(parser_version=__version__)
-IOPSoup2.add_ingredient(IOPReformat2())
-IOPSoup2.add_ingredient(IOPRemoveTrash2())
-IOPSoup2.add_ingredient(IOPCreateTags2())
-IOPSoup2.add_ingredient(IOPReplaceSectionTag2())
-IOPSoup2.add_ingredient(IOPCollect2())
+IOPSoup = Soup(parser_version=__version__)
+IOPSoup.add_ingredient(IOPReformat())
+IOPSoup.add_ingredient(IOPRemoveTrash())
+IOPSoup.add_ingredient(IOPCreateTags())
+IOPSoup.add_ingredient(IOPReplaceSectionTag())
+IOPSoup.add_ingredient(IOPCollect())
 
 
 # if __name__ == '__main__':
