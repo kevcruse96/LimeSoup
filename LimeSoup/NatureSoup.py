@@ -53,6 +53,7 @@ class NatureRemoveTrash(RuleIngredient):
             # # Still deciding how to deal with removing all references,
             # # Currently all superscript references are removed.
             # {'name': 'a'}
+            {'name': 'a','data-track-action':"reference anchor"}, # FixAPR24) remove reference numbers from main text - still has brackets and commas
             {'name': 'a', 'data-track-action': 'figure anchor'},  # Figure Link
             {'name': 'a', 'data-track-action': 'supplementary material anchor'}  # Supplementary Link
         ]
@@ -145,7 +146,7 @@ class NatureCollect(RuleIngredient):
             re.compile(r'.*?acknowledge?ment.*?', re.IGNORECASE),
             re.compile(r'.*?reference.*?', re.IGNORECASE),
             re.compile(r'.*?author\s*information.*?', re.IGNORECASE),
-            re.compile(r'.*?related\s*links.*?', re.IGNORECASE),
+#            re.compile(r'.*?related\s*links.*?', re.IGNORECASE), #FixAPR24) do not remove references
             re.compile(r'.*?about\s*this\s*article.*?', re.IGNORECASE),
         ]
 
@@ -192,7 +193,10 @@ class NatureCollect(RuleIngredient):
                 'name': 'Abstract',
                 'content': [trimmed_sections[0]],
             }
+        ref = [par for par in trimmed_sections if 'reference' in par['name'].lower()] # FixAPR24) add references
+        trimmed_sections = [par for par in trimmed_sections if 'reference' not in par['name'].lower()] # FixAPR24) add references
         obj['Sections'] = trimmed_sections
+        obj['References'] = ref # FixAPR24) add references
 
         return obj
 

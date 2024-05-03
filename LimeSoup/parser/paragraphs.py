@@ -57,7 +57,7 @@ def get_tag_text(cur_tag):
             strings.append('\n')
             strings.append(get_tag_text(child))
 
-    return normalize_text(''.join(strings))
+    return normalize_text(' '.join(strings)) # FixAPR24) added space between section number and heading
 
 
 def extract_paragraphs_recursive(tag_or_soup, exclude_section_rules=None):
