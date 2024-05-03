@@ -144,9 +144,9 @@ class NatureCollect(RuleIngredient):
 
         ending_sections = [
             re.compile(r'.*?acknowledge?ment.*?', re.IGNORECASE),
-            re.compile(r'.*?reference.*?', re.IGNORECASE),
+            #re.compile(r'.*?reference.*?', re.IGNORECASE),#FixAPR24) do not remove references
             re.compile(r'.*?author\s*information.*?', re.IGNORECASE),
-#            re.compile(r'.*?related\s*links.*?', re.IGNORECASE), #FixAPR24) do not remove references
+            re.compile(r'.*?related\s*links.*?', re.IGNORECASE), 
             re.compile(r'.*?about\s*this\s*article.*?', re.IGNORECASE),
         ]
 
