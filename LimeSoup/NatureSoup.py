@@ -46,8 +46,9 @@ class NatureRemoveTrash(RuleIngredient):
         # Tags to be removed from the HTML paper ECS
         list_remove = [
             {'name': 'span', 'class': "u-custom-list-number"},
-            {'name':'div','class':"c-article-equation__number"},
             {'name':'div','class':"c-article-equation"},
+            # {'name':'div','class':"c-article-equation__number"},
+            
             
             # {'name': 'li', 'itemprop': 'citation'},
             {'name': 'li', 'itemprop': 'citation'},  # Citations/References
