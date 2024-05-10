@@ -24,6 +24,7 @@ class NatureRemoveTagsSmallSub(RuleIngredient):
                  {'name': 'b'},
                  {'name': 'i'},
                  {'name': 'sup'},
+                 {'name': 'li'},
                  {'name': 'span', 'class': 'italic'},
                  {'name': 'span', 'class': 'bold'},
                  {'name': 'strong'},
@@ -44,6 +45,11 @@ class NatureRemoveTrash(RuleIngredient):
     def _parse(parser):
         # Tags to be removed from the HTML paper ECS
         list_remove = [
+            {'name': 'span', 'class': "u-custom-list-number"},
+            {'name':'div','class':"c-article-equation__number"},
+            {'name':'div','class':"c-article-equation"},
+            
+            # {'name': 'li', 'itemprop': 'citation'},
             {'name': 'li', 'itemprop': 'citation'},  # Citations/References
             {'name': 'div', 'id': 'article-comments-section'},  # Comments
             {'name': 'figure'},  # Figures
@@ -144,9 +150,9 @@ class NatureCollect(RuleIngredient):
 
         ending_sections = [
             re.compile(r'.*?acknowledge?ment.*?', re.IGNORECASE),
-            re.compile(r'.*?reference.*?', re.IGNORECASE),
+            #re.compile(r'.*?reference.*?', re.IGNORECASE),#FixAPR24) do not remove references
             re.compile(r'.*?author\s*information.*?', re.IGNORECASE),
-#            re.compile(r'.*?related\s*links.*?', re.IGNORECASE), #FixAPR24) do not remove references
+            re.compile(r'.*?related\s*links.*?', re.IGNORECASE), 
             re.compile(r'.*?about\s*this\s*article.*?', re.IGNORECASE),
         ]
 
@@ -193,6 +199,7 @@ class NatureCollect(RuleIngredient):
                 'name': 'Abstract',
                 'content': [trimmed_sections[0]],
             }
+        trimmed_sections = [{'type':'section_h1','name':'Abstract_guess','content':[par]} if isinstance(par,str) else par for par in trimmed_sections ] # FixAPR24) process strings as dict with 'type':h1
         ref = [par for par in trimmed_sections if 'reference' in par['name'].lower()] # FixAPR24) add references
         trimmed_sections = [par for par in trimmed_sections if 'reference' not in par['name'].lower()] # FixAPR24) add references
         obj['Sections'] = trimmed_sections
