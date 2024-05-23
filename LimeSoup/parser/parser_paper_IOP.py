@@ -5,6 +5,8 @@ import bs4
 
 from LimeSoup.parser import tools as tl
 
+from pprint import pprint
+
 class ParserPaper:
 
     def __init__(self, raw_xml, parser_type='lxml', debugging=False):
@@ -45,43 +47,64 @@ class ParserPaper:
 
     def create_section(self, name='no_name_section', type_section='no_type', content=[]):
        return {
-            'type': type_section
-            , 'name': name
-            , 'content': content
+           'type': type_section,
+           'name': name,
+           'content': content
         }
 
+    # def extract_from_section(self, section):
+    #     if section.find('title'):
+    #         name = self.convert_to_text(section.find('title').text)
+    #     else:
+    #         name = ''
+    #
+    #     content = []
+    #
+    #     # first get paragraphs without headings (most ECS introductions don't seem to have a heading)
+    #     for p in section.find_all('p', recursive=False):
+    #         content_text = self.convert_to_text(p.text)
+    #         print()
+    #         pprint(content_text)
+    #         print()
+    #         if content_text != '':
+    #             content.append(content_text)
+
+
     def create_parser_sections(self, soup):
-
-        first_attempt_search_str = re.compile('sec')
-        second_attempt_search_str = re.compile('sec-level[1-6]')
-
-        section_tags = soup.find_all(first_attempt_search_str)
-
-        if section_tags == []:
-            section_tags = soup.find_all(second_attempt_search_str)
+        search_str = re.compile('sec')
+        section_tags = soup.find_all(search_str)
 
         # Get all sections
         for tag in section_tags:
             if tag.find('title'):
                 name = self.convert_to_text(tag.find('title').text)
+            else:
+                name = ''
 
-                content = []
-                for p in tag.find_all('p', recursive=False):
-                    content_text=self.convert_to_text(p.text)
-                    # changed below to remove empty string sections...
-                    # this happens when there are disp-formula and inline-formula tags surrounded by <p></p>... we can remove the
-                    # formula tags but the empty <p></p> sections remain
-                    # TODO: this should probably be taken care of in cleaning stage, but this works for now
-                    if content_text != '':
-                        content.append(content_text)
-                    # content.append(content_text)
+            content = []
 
+            for p in tag.find_all('p', recursive=False):
+                content_text = self.convert_to_text(p.text)
+                if content_text != '':
+                    content.append(content_text)
+
+            if not any(
+                [re.match(re.compile(exclude_pattern, re.IGNORECASE), name) for
+                exclude_pattern in [
+                    r'.*?acknowledge?ment.*?',
+                    r'.*?list of symbols.*?',
+                    r'.*?errata.*?',
+                    r'.*?note added in proof.*?',
+                    r'.*?data availability statement.*?',
+                    r'.*?list of abbreviation.*?',
+                    r'.*?conflict of interest.*?'
+                 ]
+            ]):
                 self.data_sections.append(self.create_section(
                     name=name,
                     type_section=tag.name,
                     content=content
                 ))
-
 
         # Nest data sections
         for i in range(6, 1, -1):
@@ -99,9 +122,6 @@ class ParserPaper:
 
             if did_nest:
                 self.data_sections = [s for s in self.data_sections if s['type'] != 'section_h{}'.format(i)]
-
-
-
 
     @staticmethod
     def create_soup(xml_xlm, parser_type='lxml'):
@@ -257,7 +277,6 @@ class ParserPaper:
         inside_tags = self.soup.find_all(**rule)
         section = self.soup.new_tag('section_{}'.format(name_new_tag))
         heading = self.soup.new_tag('h2')
-        heading.append(name_section)
         section.append(heading)
         for tag in inside_tags:
             tag.wrap(section)
@@ -311,7 +330,7 @@ class ParserPaper:
             # self.save_soup_to_file('selction_found_nothing.xml')
             # input('Section not created, selection found nothing')
             return 'Section not created, number of paragraphs equal zero.'
-        inside_tags = inside_tags_inter[0].find_all(re.compile('para'), recursive=False)
+        inside_tags = inside_tags_inter[0].find_all(re.compile('(p|ol)|span'), recursive=False)
         #inside_tags = inside_tags_inter[0].find_all('p', recursive=False)
         #inside_tags_ol = inside_tags_inter[0].find_all('ol', recursive=False)
         #print(len(inside_tags_ol))
@@ -361,12 +380,15 @@ class ParserPaper:
             tag_name_tmp = each_tag.find('id').string
             #print('Tag:', each_tag.name, 'Label:', "%r"%tag_name_tmp)
             # To be consistent with the html parser, the notation h1, h2, ..., h6 is kept.
-            tag_name = int(tag_name_tmp.count('.'))+2
+            # As of 2024-04, the '.' delimiter for nested sections changed to '-'
+            # tag_name = int(tag_name_tmp.count('.'))+2
+            tag_name = int(tag_name_tmp.count('-')) + 2
             section = self.soup.new_tag('section_h{}'.format(tag_name))
             each_tag.wrap(section)
             # except:
             #     section = self.soup.new_tag('section_h0')
             #     each_tag.wrap(section)
+
 
     def rename_tag(self, rule, new_name='section_h4'):
         tags = self.soup.find_all(**rule)
@@ -386,16 +408,20 @@ class ParserPaper:
                 tags.append(tag.name)
         return tags
 
+
     def change_name_tag_sections(self):
+        # TODO: this is the exact same as create_tag_sections... simplify!
         tags = self.soup.find_all('sec')
         for each_tag in tags:
             try:
                 tag_name_tmp = each_tag['id']
                 # To be consistent with the xml parser, the notation h1, h2, ..., h6 is kept.
-                tag_name = int(tag_name_tmp.count('.'))+2
+                # As of 2024-04, the '.' delimiter for nested sections changed to '-'
+                # tag_name = int(tag_name_tmp.count('.'))+2
+                tag_name = int(tag_name_tmp.count('-')) + 2
                 each_tag.name = 'section_h{}'.format(tag_name)
             except:
-                 each_tag.name = 'section_h2'
+                each_tag.name = 'section_h2'
 
     @staticmethod
     def convert_to_text(text):
@@ -406,7 +432,9 @@ class ParserPaper:
         text = text.replace(" [, , ]", " ")
         text = text.replace(" [, , , ]", " ")
         text = text.replace(" [, , , ,]", " ")
-        text = ' '.join(str(text).split())
+        text = text.replace("&mgr;", "μ")
+        text = text.replace("\xad", '-')
+        text = ' '.join(str(text).split()) #
         text = re.sub(r"\&(\w+?)gr;", r"\1", text)
         return text
 
