@@ -84,6 +84,7 @@ class ParserPaper:
             content = []
 
             for p in tag.find_all('p', recursive=False):
+
                 content_text = self.convert_to_text(p.text)
                 if content_text != '':
                     content.append(content_text)
@@ -105,6 +106,7 @@ class ParserPaper:
                     type_section=tag.name,
                     content=content
                 ))
+
 
         # Nest data sections
         for i in range(6, 1, -1):

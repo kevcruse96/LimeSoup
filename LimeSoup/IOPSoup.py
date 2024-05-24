@@ -28,9 +28,16 @@ class IOPRemoveTrash(RuleIngredient):
 
         # remove formatting for inline citations
         xml_str = re.sub(r'(?:(\[)<xref ref-type="bibr".*?\/xref>(\]|\))?)', '', xml_str)
+
         # remove empty title tags (happens around List of Symbols sections
         xml_str = xml_str.replace("<title/>", "")
+
+        # add carots for exponentials (only for digits, not for inline citations)
         xml_str = re.sub(r"<sup>([\d+|[\−\d+])", r"<sup>^\1", xml_str)
+
+        # remove Google script tags
+        xml_str = re.sub(r"<\?.*?\s?(<.*>)?\?>", r"\1", xml_str)
+
         parser = ParserPaper(xml_str, parser_type='html.parser', debugging=False)
 
         list_remove = [
@@ -40,8 +47,10 @@ class IOPRemoveTrash(RuleIngredient):
             {'name': 'xref', 'ref-type': 'bibr'},
             {'name': 'label'},
             {'name': 'disp-formula'},
+            {'name': 'def-list', 'list-content': 'abbreviations'}
         ]
         parser.remove_tags(rules=list_remove)
+
 
         # if parser.soup.find(**{'name': 'xref', 'ref-type': 'bibr'}):
         #     print(parser.soup.find(**{'name': 'xref', 'ref-type': "bibr"}))
