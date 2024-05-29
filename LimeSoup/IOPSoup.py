@@ -11,10 +11,6 @@ __maintainer__ = 'Kevin Cruse'
 __email__ = 'kevcruse96@gmail.com'
 __version__ = '0.2.0'
 
-# TODO: each class _parse method returns parser.raw_xml, however the html.parser option for Parser_Paper seems to work best
-# ... may be worth changing nomenclature throughout
-# ... also maybe don't need Reformat class?
-
 class IOPRemoveTrash(RuleIngredient):
     @staticmethod
     def _parse(xml_str):
@@ -27,12 +23,14 @@ class IOPRemoveTrash(RuleIngredient):
         # If there are any remaining, then just remove using parser.remove_tags() method
 
         # remove formatting for inline citations
-        xml_str = re.sub(r'(?:(\[)<xref ref-type="bibr".*?\/xref>(\]|\))?)', '', xml_str)
+        xml_str = re.sub(r'(?:(\[)?<xref ref-type="bibr".*?\/xref>(\]|\))?)', '', xml_str)
 
         # remove empty title tags (happens around List of Symbols sections
         xml_str = xml_str.replace("<title/>", "")
 
         # add carots for exponentials (only for digits, not for inline citations)
+        # note that this does not cover cases like below:
+        # <mml:msup><mml:mrow><mml:mn>10</mml:mn></mml:mrow><mml:mrow><mml:mn>17</mml:mn></mml:mrow></mml:msup>
         xml_str = re.sub(r"<sup>([\d+|[\−\d+])", r"<sup>^\1", xml_str)
 
         # remove Google script tags
@@ -50,12 +48,6 @@ class IOPRemoveTrash(RuleIngredient):
             {'name': 'def-list', 'list-content': 'abbreviations'}
         ]
         parser.remove_tags(rules=list_remove)
-
-
-        # if parser.soup.find(**{'name': 'xref', 'ref-type': 'bibr'}):
-        #     print(parser.soup.find(**{'name': 'xref', 'ref-type': "bibr"}))
-        #     print('Did not remove xref bibr correctly')
-        #     stop
 
         # Added 202405
         list_strip = [
@@ -109,20 +101,6 @@ class IOPCollect(RuleIngredient):
 
     @staticmethod
     def _parse(parser):
-        # parser = ParserPaper(xml_str, parser_type='html.parser', debugging=False)
-        # Collect information from the paper using ParserPaper
-
-        # As of 2024-04, we already have journal title from download
-        # try:
-        #     journal_name = next(x for x in parser.get(rules=[{"name": "journal-title"}]))
-        # except StopIteration:
-        #     journal_name = None
-
-        # As of 2024-04, we already have article title from download
-        # parser.get_title(rules=[
-        #     {'name': 'article-title'}
-        # ]
-        # )
 
         # As of 2024-04, this is the correct way to get DOI...
         # should check against what was parsed from download
