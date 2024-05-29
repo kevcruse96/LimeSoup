@@ -1,25 +1,21 @@
 from DBGater.db_singleton_mongo import SynDevAdmin, FullTextAdmin
 import json
-from LimeSoup import NatureSoup
+from LimeSoup import SpringerNatureSoup, SpringerSoup
 import xml.etree.ElementTree as ET
 from pprint import pprint
 from time import sleep
 from statistics import mean, median
+import sys, traceback
 
 import random
 
-# from Borges.spiders.AIP.download_abstract import download_abstract
+db = SynDevAdmin.db_access()
+old_db = FullTextAdmin.db_access()
 
-# db = SynDevAdmin.db_access()
-# db.connect()
-#
-# paper_col = db.collection("IOPPapers")
+db.connect()
+old_db.connect()
 
-####################################################
-## Papers have not been loaded into MongoDB yet...##
-## for now, load in test .xml files here ###########
-papers = []
-####################################################
+paper_col = db.collection("SpringerPapers_Test")
 
 # note that in recursive functions, args with a default will be overwritten if already assigned (like collected_content)
 def unwind_sections(sections, collected_content=[], ancestors=['_root'], i=0):
@@ -64,14 +60,24 @@ def unwind_sections(sections, collected_content=[], ancestors=['_root'], i=0):
     ancestors = ancestors[:-1] if len(ancestors)>1 else ['_root']
     return collected_content, ancestors, i
 
-for paper in papers:
-    parsed_paper = NatureSoup.parse(paper)
-    # First, check things were parsed correctly
-    pprint(parsed_paper)
+for i, paper in enumerate(paper_col.find({})):
+    if i == 1:
+        try:
+            parsed_paper = SpringerNatureSoup.parse(paper['Paper_Content'])
+            # First, check things were parsed correctly
+            pprint(parsed_paper)
 
-    # Optionally, format things for insertion into a Paragraphs MongoDB collection
-    unwound_sections, ancestors, total_paras = unwind_sections(
-        parsed_paper['Sections'],
-        collected_content=[],
-        ancestors=['_root']
-    )
+            # Optionally, format things for insertion into a Paragraphs MongoDB collection
+            unwound_sections, ancestors, total_paras = unwind_sections(
+                parsed_paper['Sections'],
+                collected_content=[],
+                ancestors=['_root']
+            )
+        except Exception as e:
+            print(e)
+            ex_type, ex, tb = sys.exc_info()
+            pprint(traceback.print_tb(tb))
+            print(paper['DOI'])
+        break
+    else:
+        continue

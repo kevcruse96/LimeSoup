@@ -4,7 +4,9 @@ from LimeSoup.APSSoup import APSSoup
 from LimeSoup.ECSSoup import ECSSoup
 from LimeSoup.ElsevierSoup import ElsevierSoup
 from LimeSoup.IOPSoup import IOPSoup
-from LimeSoup.NatureSoup import NatureSoup
+from LimeSoup.SpringerNatureSoup import SpringerNatureSoup
+from LimeSoup.SpringerSoup import SpringerSoup
 from LimeSoup.RSCSoup import RSCSoup
 from LimeSoup.SpringerSoup import SpringerSoup
 from LimeSoup.WileySoup import WileySoup
+from LimeSoup.IOPSoup_old import IOPSoup_old
